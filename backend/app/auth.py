@@ -6,6 +6,9 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+from . import crud, schemas
+from .database import SessionLocal
+from sqlalchemy.orm import Session
 
 load_dotenv() # Carrega as variáveis do arquivo .env
 
@@ -33,3 +36,36 @@ def create_access_token(data: dict):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+# Precisaremos de uma sessão de DB aqui também    
+def get_db(): 
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Dependência que decodifica o token, extrai o email, e busca o usuário no banco.
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        
+        # Aqui poderíamos validar o schema do token se quiséssemos
+        # token_data = schemas.TokenData(email=email) 
+
+    except JWTError:
+        raise credentials_exception
+    
+    user = crud.get_user_by_email(db, email=email)
+    if user is None:
+        raise credentials_exception
+    
+    return user

@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # URL de conexão para o PostgreSQL rodando via Docker
-SQLALCHEMY_DATABASE_URL = "postgresql://admin:supersecret@db/production_dashboard_db"
+SQLALCHEMY_DATABASE_URL = "postgresql://admin:supersecret@localhost/production_dashboard_db"
 
 # sqlalchemy.url: "postgresql://{user}:{password}@{host}/{database}"
 

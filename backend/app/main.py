@@ -1,31 +1,27 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordRequestForm
-from . import models, schemas, crud, auth
-from .database import engine, SessionLocal
+from fastapi.security import OAuth2PasswordRequestForm 
+from . import crud, models, schemas, auth
+from .database import SessionLocal, engine
 
-# Cria a tabela no DB (se ela não existir) ao iniciar a aplicação
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Production Dashboard API")
 
-# Dependência para obter a sessão do banco de dados 
 def get_db():
-  db = SessionLocal()
-  try: 
-    yield db
-  finally:
-    db.close()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# --- ENDPOINT DE REGISTRO DE USUÁRIO
-@app.post("/user/", response_model=schemas.User)    
-def create_new_user(user:  schemas.UserCreate, db: Session = Depends(get_db)):
-  # Verifica se o e-mail já está cadastrado
-  db_user = crud.get_user_by_email(db, email=user.email)
-  if db_user:
-    raise HTTPException(status_code=400, detail="Email already registeded")
-  
-  return crud.create_user(db=db, user=user)
+# --- ENDPOINT DE REGISTRO DE USUÁRIO ---
+@app.post("/users/", response_model=schemas.User)
+def create_new_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return crud.create_user(db=db, user=user)
 
 # --- ENDPOINT DE LOGIN ---
 @app.post("/login", response_model=auth.Token)
@@ -39,3 +35,10 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         )
     access_token = auth.create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
+  
+@app.get("/users/me", response_model=schemas.User)
+def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
+    """
+    Endpoint protegido que retorna os dados do usuário atualmente logado.
+    """
+    return current_user
