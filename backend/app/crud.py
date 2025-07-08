@@ -17,3 +17,18 @@ def create_user(db: Session, user: schemas.UserCreate):
   db.commit()
   db.refresh(db_user)
   return db_user
+
+# crud de production order
+
+def create_production_order(db: Session, order: schemas.ProductionOrderCreate, owner_id: int):
+  # Cria uma instância do modelo do banco de dados a partir dos dados do schema
+  # e adiciona o owner_id.
+  db_order = models.ProductionOrder(
+    **order.dict(), # Pega todos os campos do schema (obra_number, nro_op, etc.)
+    owner_id=owner_id
+  )
+  
+  db.add(db_order)
+  db.commit()
+  db.refresh(db_order)
+  return db_order
