@@ -21,14 +21,27 @@ def create_user(db: Session, user: schemas.UserCreate):
 # crud de production order
 
 def create_production_order(db: Session, order: schemas.ProductionOrderCreate, owner_id: int):
-  # Cria uma instância do modelo do banco de dados a partir dos dados do schema
-  # e adiciona o owner_id.
-  db_order = models.ProductionOrder(
-    **order.dict(), # Pega todos os campos do schema (obra_number, nro_op, etc.)
-    owner_id=owner_id
-  )
-  
-  db.add(db_order)
-  db.commit()
-  db.refresh(db_order)
-  return db_order
+    # A maneira mais explícita de criar o objeto
+    db_order = models.ProductionOrder(
+        obra_number=order.obra_number,
+        nro_op=order.nro_op,
+        # ... (todos os outros campos de status) ...
+        transf_potencia_status=order.transf_potencia_status,
+        transf_corrente_status=order.transf_corrente_status,
+        chave_secc_status=order.chave_secc_status,
+        disjuntor_status=order.disjuntor_status,
+        bucha_iso_raio_status=order.bucha_iso_raio_status,
+        geral_status=order.geral_status,
+        descricao=order.descricao,
+        ca=order.ca,
+        nobreak=order.nobreak,
+        owner_id=owner_id
+        # Não definimos created_at e updated_at, pois o DB faz isso
+    )
+
+    db.add(db_order)
+    db.commit()
+    # A MÁGICA: Após o commit, recarregamos o objeto inteiro do DB
+    # Isso garante que todos os defaults, como 'updated_at', sejam carregados.
+    db.refresh(db_order) 
+    return db_order

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
+from sqlalchemy.sql import func
 
 class User(Base):
   __tablename__ = "users"
@@ -32,8 +33,8 @@ class ProductionOrder(Base):
   nobreak = Column(String, nullable=True)
   
   # campos de auditoria
-  created_at = Column(DateTime, default=datetime.utcnow)
-  update_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+  created_at = Column(DateTime, server_default=func.now())
+  updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
   
   #relacionamento com o usuario
   owner_id = Column(Integer, ForeignKey("users.id"))

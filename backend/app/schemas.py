@@ -27,7 +27,7 @@ class ProductionOrderBase(BaseModel):
     bucha_iso_raio_status: str = "pendente"
     geral_status: str = "produção"
     descricao: str | None = None
-    ca_r167: str | None = None
+    ca: str | None = None
     nobreak: str | None = None
 
 class ProductionOrderCreate(ProductionOrderBase):
@@ -37,7 +37,8 @@ class ProductionOrder(ProductionOrderBase):
     id: int
     owner_id: int
     created_at: datetime
-    updated_at: datetime
+    # Permite que updated_at seja nulo, embora nosso DB o defina
+    updated_at: datetime | None = None 
 
     class Config:
-        orm_mode = True # ou from_attributes=True
+        from_attributes = True
