@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-
-
 from . import crud, models, schemas, auth 
 from .database import SessionLocal, engine
+from typing import Optional
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -60,13 +59,46 @@ def create_order(
         
     return crud.create_production_order(db=db, order=order, owner_id=current_user.id)
 
-# Retorna uma lista de todas as ordens de produção. Requer autenticação.
+# Retorna os detalhes de uma ordem de produção específica. Requer autenticação.
 @app.get("/orders/", response_model=list[schemas.ProductionOrder], tags=["Production Orders"])
 def read_orders(
+    obra_number: Optional[str] = None,
+    nro_op: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_active_user)
 ):
-    orders = crud.get_orders(db, skip=skip, limit=limit)
+    orders = crud.get_orders(
+        db, 
+        obra_number=obra_number, 
+        nro_op=nro_op, 
+        skip=skip, 
+        limit=limit
+    )
     return orders
+
+# Atualiza uma ordem de produção. Requer autenticação.
+@app.put("/orders/{order_id}", response_model=schemas.ProductionOrder, tags=["Production Orders"])
+def update_order(
+    order_id: int, 
+    order: schemas.ProductionOrderCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    updated_order = crud.update_order(db=db, order_id=order_id, order_data=order)
+    if updated_order is None:
+        raise HTTPException(status_code=404, detail="Order not found to update")
+    return updated_order
+
+# Deleta uma ordem de produção. Requer autenticação.
+@app.delete("/orders/{order_id}", response_model=schemas.ProductionOrder, tags=["Production Orders"])
+def delete_order(
+    order_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    deleted_order = crud.delete_order(db=db, order_id=order_id)
+    if deleted_order is None:
+        raise HTTPException(status_code=404, detail="Order not found to delete")
+    return deleted_order
