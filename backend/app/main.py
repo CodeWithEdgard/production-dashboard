@@ -59,3 +59,14 @@ def create_order(
         raise HTTPException(status_code=400, detail=f"NRO OP '{order.nro_op}' já existe.")
         
     return crud.create_production_order(db=db, order=order, owner_id=current_user.id)
+
+# Retorna uma lista de todas as ordens de produção. Requer autenticação.
+@app.get("/orders/", response_model=list[schemas.ProductionOrder], tags=["Production Orders"])
+def read_orders(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    orders = crud.get_orders(db, skip=skip, limit=limit)
+    return orders

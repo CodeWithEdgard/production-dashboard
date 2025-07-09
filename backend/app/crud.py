@@ -19,9 +19,7 @@ def create_user(db: Session, user: schemas.UserCreate):
   return db_user
 
 # crud de production order
-
 def create_production_order(db: Session, order: schemas.ProductionOrderCreate, owner_id: int):
-    # A maneira mais explícita de criar o objeto
     db_order = models.ProductionOrder(
         obra_number=order.obra_number,
         nro_op=order.nro_op,
@@ -36,12 +34,21 @@ def create_production_order(db: Session, order: schemas.ProductionOrderCreate, o
         ca=order.ca,
         nobreak=order.nobreak,
         owner_id=owner_id
-        # Não definimos created_at e updated_at, pois o DB faz isso
     )
 
     db.add(db_order)
     db.commit()
-    # A MÁGICA: Após o commit, recarregamos o objeto inteiro do DB
-    # Isso garante que todos os defaults, como 'updated_at', sejam carregados.
     db.refresh(db_order) 
     return db_order
+
+# Busca todas as ordens de produção do banco de dados, com paginação.  
+def get_orders(db: Session, skip: int = 0, limit: int = 100):
+  return db.query(models.ProductionOrder).offset(skip).limit(limit).all()
+
+# Busca uma ordem específica pelo NRO OP para evitar duplicatas.
+def get_order_by_nro_op(db: Session, nro_op: str):
+  return db.query(models.ProductionOrder).filter(models.ProductionOrder.nro_op == nro_op).first()
+
+# Busca uma ordem específica pelo seu ID.
+def get_order_by_id(db: Session, order_id: int):
+  return db.query(models.ProductionOrder).filter(models.ProductionOrder.id == order_id).first()
