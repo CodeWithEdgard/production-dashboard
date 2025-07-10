@@ -4,10 +4,28 @@ from fastapi.security import OAuth2PasswordRequestForm
 from . import crud, models, schemas, auth 
 from .database import SessionLocal, engine
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Production Dashboard API")
+
+# --- CONFIGURAÇÃO DO CORS ---
+# Lista de origens permitidas (domínios que podem fazer requisições para nossa API)
+origins = [
+    "http://localhost",
+    "http://localhost:5173",  # A origem do nosso app React (Vite)
+    "http://127.0.0.1:5173", # Adicionar esta por segurança também
+    # No futuro, adicionaremos a URL de produção do nosso front-end aqui
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # Permite as origens especificadas
+    allow_credentials=True,      # Permite cookies (importante para alguns fluxos de auth)
+    allow_methods=["*"],         # Permite todos os métodos (GET, POST, PUT, etc.)
+    allow_headers=["*"],         # Permite todos os cabeçalhos
+)
 
 # A dependência get_db vive aqui, pois será usada por vários endpoints
 def get_db():
