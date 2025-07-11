@@ -1,31 +1,24 @@
 
 import React, {useState} from "react";
 import axios from 'axios'
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault(); // Previne o recarregamento da página
-    setError('');
-
-    // A URL completa da nossa API.
-    const API_URL = "http://127.0.0.1:8000";
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const response = await axios.post(`${API_URL}/login`, formData);
-
-      console.log("Login bem-sucedido!", response.data);
-      alert("Login bem-sucedido! Token: " + response.data.access_token);
+      await login(email, password);
+      navigate('/dashboard');
     } catch (err) {
       setError("Email ou senha incorretos.");
-      console.log("Erro no login: ", err);
     }
 
   };
