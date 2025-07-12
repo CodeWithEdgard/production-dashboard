@@ -6,6 +6,8 @@ import axios from "axios";
 
 // NOSSAS PÁGINAS E COMPONENTES
 import { useAuth } from "../context/AuthContext";
+import { toast } from 'react-toastify';
+import Spinner from "../components/Spinner";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -80,7 +82,7 @@ function DashboardPage() {
       await axios[method](url, formData);
 
       // Mostra uma mensagem de sucesso
-      alert(`Ordem ${editingId ? "atualizada" : "criada"} com sucesso!`);
+      toast.success(`Ordem ${editingId ? 'atualizada' : 'criada'} com sucesso!`);
 
       // Chama a função para limpar o formulário e resetar o modo de edição
       resetForm();
@@ -102,11 +104,11 @@ function DashboardPage() {
     ) {
       try {
         await axios.delete(`${API_URL}/orders/${orderId}`);
-        alert("Ordem deletada com sucesso!");
+        toast.success("Ordem deletada com sucesso!");
         fetchOrders(); // Atualiza a lista
       } catch (err) {
         console.error("Erro ao deletar ordem:", err);
-        alert("Erro ao deletar a ordem.");
+        toast.error("Erro ao deletar a ordem.");
       }
     }
   };
@@ -371,7 +373,7 @@ function DashboardPage() {
         {/* --- Tabela --- */}
         <section>
           <h2>Ordens de Produção</h2>
-          {loading && <p>Carregando...</p>}
+          {loading && <Spinner />}
           {error && <p style={{ color: "red" }}>{error}</p>}
           {!loading && !error && (
             <table>
