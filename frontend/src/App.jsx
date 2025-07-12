@@ -1,21 +1,17 @@
+// src/App.jsx
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate} from 'react-router-dom';
+
+// NOSSAS PÁGINAS
 import LoginPage from '../pages/LoginPage';
+import DashboardPage from '../pages/DashboardPage'; 
+
+// NOSSOS COMPONENTES E LÓGICA
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
 
-// Um componente placeholder para nosso futuro dashboard
-function DashboardPage() {
-  const { logout } = useAuth();
-  return (
-    <div>
-      <h2>Dashboard (Pagina Protegida)</h2>
-      <button onClick={logout}>Sair (Logout)</button>
-    </div>
-  )
-}
-
+// 1. FUNÇOES AUXILIARES
 function Home() {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
@@ -40,4 +36,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
