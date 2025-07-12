@@ -7,7 +7,6 @@ import axios from "axios";
 // NOSSAS PÁGINAS E COMPONENTES
 import { useAuth } from "../context/AuthContext";
 
-
 const API_URL = "http://127.0.0.1:8000";
 
 function DashboardPage() {
@@ -32,17 +31,35 @@ function DashboardPage() {
   // Estado para controlar se estamos editando ou criando
   const [editingId, setEditingId] = useState(null);
 
+  // Paginas
+  const [currentPage, setCurrentPage] = useState(0);
+  const ORDERS_PER_PAGE = 10; // Quantas ordens queremos por página
+
+  // Status
+  const statusOptions = [
+    "ok",
+    "pendente recebimento",
+    "aguardando entrada",
+    "troca entre obras",
+    "entrega parcial",
+    "N/A",
+  ];
+  const statusProduction = ["estrutura", "produção", "expedição"];
+
   // --- FUNÇÕES DE INTERAÇÃO COM A API ---
 
   // 1. FUNÇÃO PARA BUSCAR TODAS AS ORDENS
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/orders/`);
+      const skip = currentPage * ORDERS_PER_PAGE;
+      const response = await axios.get(
+        `${API_URL}/orders/?skip=${skip}&limit=${ORDERS_PER_PAGE}`
+      );
       setOrders(response.data);
       setError("");
     } catch (err) {
-      setError("Falha ao carregar as ordens.");
+      // ... (resto da função continua igual) ...
     } finally {
       setLoading(false);
     }
@@ -50,30 +67,31 @@ function DashboardPage() {
 
   // 2. FUNÇÃO PARA CRIAR OU ATUALIZAR UMA ORDEM
   const handleFormSubmit = async (e) => {
-  e.preventDefault(); // Impede o recarregamento da página
+    e.preventDefault(); // Impede o recarregamento da página
 
-  // A URL e o método mudam se estamos editando ou criando
-  const method = editingId ? 'put' : 'post';
-  const url = editingId ? `${API_URL}/orders/${editingId}` : `${API_URL}/orders/`;
+    // A URL e o método mudam se estamos editando ou criando
+    const method = editingId ? "put" : "post";
+    const url = editingId
+      ? `${API_URL}/orders/${editingId}`
+      : `${API_URL}/orders/`;
 
-  try {
-    // Envia a requisição para a API com os dados do estado 'formData'
-    await axios[method](url, formData);
+    try {
+      // Envia a requisição para a API com os dados do estado 'formData'
+      await axios[method](url, formData);
 
-    // Mostra uma mensagem de sucesso
-    alert(`Ordem ${editingId ? 'atualizada' : 'criada'} com sucesso!`);
-    
-    // Chama a função para limpar o formulário e resetar o modo de edição
-    resetForm();
-    
-    // Chama a função para buscar e re-renderizar a lista de ordens
-    fetchOrders();
+      // Mostra uma mensagem de sucesso
+      alert(`Ordem ${editingId ? "atualizada" : "criada"} com sucesso!`);
 
-  } catch (err) {
-    console.error("Erro ao salvar ordem:", err);
-    alert("Erro ao salvar a ordem.");
-  }
-};
+      // Chama a função para limpar o formulário e resetar o modo de edição
+      resetForm();
+
+      // Chama a função para buscar e re-renderizar a lista de ordens
+      fetchOrders();
+    } catch (err) {
+      console.error("Erro ao salvar ordem:", err);
+      alert("Erro ao salvar a ordem.");
+    }
+  };
 
   // 3. FUNÇÃO PARA DELETAR UMA ORDEM
   const handleDelete = async (orderId) => {
@@ -146,7 +164,19 @@ function DashboardPage() {
   // useEffect: Busca os dados assim que o componente carrega
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [currentPage]); // O array agora contém 'currentPage'
+
+  //
+  const goToNextPage = () => {
+    // Só avança se a página atual não estiver vazia
+    if (orders.length === ORDERS_PER_PAGE) {
+      setCurrentPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage((prevPage) => Math.max(0, prevPage - 1));
+  };
 
   // --- RENDERIZAÇÃO DO JSX ---
   return (
@@ -187,73 +217,145 @@ function DashboardPage() {
             />
 
             {/* --- CAMPOS DE STATUS --- */}
-            <input
-              type="text"
-              name="transf_potencia_status"
-              value={formData.transf_potencia_status}
-              onChange={handleInputChange}
-              placeholder="Status Transf. Potência"
-            />
-            <input
-              type="text"
-              name="transf_corrente_status"
-              value={formData.transf_corrente_status}
-              onChange={handleInputChange}
-              placeholder="Status Transf. Corrente"
-            />
-            <input
-              type="text"
-              name="chave_secc_status"
-              value={formData.chave_secc_status}
-              onChange={handleInputChange}
-              placeholder="Status Chave Secc."
-            />
-            <input
-              type="text"
-              name="disjuntor_status"
-              value={formData.disjuntor_status}
-              onChange={handleInputChange}
-              placeholder="Status Disjuntor"
-            />
-            <input
-              type="text"
-              name="bucha_iso_raio_status"
-              value={formData.bucha_iso_raio_status}
-              onChange={handleInputChange}
-              placeholder="Status Bucha/Iso/Raio"
-            />
-            <input
-              type="text"
-              name="geral_status"
-              value={formData.geral_status}
-              onChange={handleInputChange}
-              placeholder="Status Geral"
-            />
+
+            {/* //  TP */}
+            <div>
+              <label>Transf. Potência:</label>
+              <select
+                name="transf_potencia_status"
+                value={formData.transf_potencia_status}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* // TC  */}
+            <div>
+              <label>Transf. Corrente:</label>
+              <select
+                name="transf_corrente_status"
+                value={formData.transf_corrente_status}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* // SECC. */}
+            <div>
+              <label>Chave Seccionadora:</label>
+              <select
+                name="Chave Seccionadora."
+                value={formData.chave_secc_status}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* // DISJ.  */}
+            <div>
+              <label>Disjuntores:</label>
+              <select
+                name="Disjuntores"
+                value={formData.disjuntor_status}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* // BUCHA */}
+            <div>
+              <label>Bucha/Iso/Raio:</label>
+              <select
+                name="Bucha/Iso/Raio"
+                value={formData.bucha_iso_raio_status}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* // NOBREAK */}
+            <div>
+              <label>Nobreak:</label>
+              <select
+                name="Nobreak"
+                value={formData.nobreak}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* // STATUS */}
+            <div>
+              <label>Status de Produção:</label>
+              <select
+                name="Status"
+                value={formData.statusProduction}
+                onChange={handleInputChange}
+              >
+                {statusProduction.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {/* --- OUTRAS INFORMAÇÕES --- */}
-            <input
-              type="text"
-              name="descricao"
-              value={formData.descricao}
-              onChange={handleInputChange}
-              placeholder="Descrição"
-            />
-            <input
-              type="text"
-              name="ca"
-              value={formData.ca}
-              onChange={handleInputChange}
-              placeholder="C.A"
-            />
-            <input
-              type="text"
-              name="nobreak"
-              value={formData.nobreak}
-              onChange={handleInputChange}
-              placeholder="Nobreak"
-            />
+            <div>
+              <input
+                type="text"
+                name="descricao"
+                value={formData.descricao}
+                onChange={handleInputChange}
+                placeholder="Descrição"
+              />
+            </div>
 
-            {/* Repita o padrão acima para TODOS os outros campos da ordem */}
+            {/* // CA NÃO NECESSARIO POREM JÁ IMPLEMENTADO */}
+            {/* <div>
+              <label>CA:</label>
+              <select
+                name="CA"
+                value={formData.ca}
+                onChange={handleInputChange}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div> */}
 
             <button type="submit">
               {editingId ? "Salvar Alterações" : "Adicionar Ordem"}
@@ -298,6 +400,20 @@ function DashboardPage() {
                   </tr>
                 ))}
               </tbody>
+
+              {/* --- CONTROLES DE PAGINAÇÃO --- */}
+              <div>
+                <button onClick={goToPreviousPage} disabled={currentPage === 0}>
+                  Página Anterior
+                </button>
+                <span> Página {currentPage + 1} </span>
+                <button
+                  onClick={goToNextPage}
+                  disabled={orders.length < ORDERS_PER_PAGE}
+                >
+                  Próxima Página
+                </button>
+              </div>
             </table>
           )}
         </section>
