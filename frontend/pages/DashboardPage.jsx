@@ -37,6 +37,7 @@ import {
   Collapse,
   IconButton,
   CssBaseline,
+  Tooltip,
 } from "@mui/material";
 
 import { useAuth } from "../context/AuthContext";
@@ -265,21 +266,27 @@ function DashboardPage() {
       <AppBar position="static" sx={{ flexShrink: 0 }}>
         <Toolbar>
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
-            Painel de Produção
+            Elak Labs
           </Typography>
 
           {/* --- Links de Navegação --- */}
           <Box sx={{ display: { xs: "none", md: "flex" }, mr: 2 }}>
             {" "}
             {/* Esconde em telas pequenas */}
-            <Button component={Link} to="/dashboard" color="inherit">
-              Dashboard
+            <Button component={Link} to="/receiving" color="inherit">
+              Recebimento
             </Button>
-            <Button component={Link} to="/reports" color="inherit">
-              Relatórios
+            <Button component={Link} to="/dashboard" color="inherit">
+              Separação Mat.
             </Button>
             <Button component={Link} to="/users-management" color="inherit">
-              Usuários
+              Requisição Mat.
+            </Button>
+            <Button component={Link} to="/users-management" color="inherit">
+              Comunicado Alt.
+            </Button>
+            <Button component={Link} to="/users-management" color="inherit">
+              RNC
             </Button>
           </Box>
 
@@ -486,7 +493,6 @@ function DashboardPage() {
                     multiline
                     rows={3}
                   />
-                  
                 </Stack>
               </Box>
             </DialogContent>
@@ -508,7 +514,7 @@ function DashboardPage() {
             }}
           >
             <Typography variant="h4" component="h1">
-              Painel de Produção
+              Separação de Materiais
             </Typography>
             <Button variant="contained" onClick={handleOpenModal}>
               + Adicionar Ordem
@@ -615,13 +621,19 @@ function DashboardPage() {
                             </TableCell>
 
                             <TableCell>
-                              {new Date(order.updated_at).toLocaleString('pt-BR')}{order.last_updated_by && (
-            <Typography variant="caption" color="text.secondary" component="div">
-                by: {order.last_updated_by.email}
-            </Typography>
-        )}
+                              {new Date(order.updated_at).toLocaleString(
+                                "pt-BR"
+                              )}
+                              {order.last_updated_by && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  component="div"
+                                >
+                                  by: {order.last_updated_by.email}
+                                </Typography>
+                              )}
                             </TableCell>
-
 
                             <TableCell align="right">
                               <Box
@@ -638,6 +650,7 @@ function DashboardPage() {
                                 >
                                   Editar
                                 </Button>
+
                                 <Button
                                   variant="outlined"
                                   color="error"
@@ -836,7 +849,7 @@ function DashboardPage() {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          Production Dashboard © {new Date().getFullYear()} | Desenvolvido por:
+          Elak Labs © {new Date().getFullYear()} | Desenvolvido por:
           <Link
             href="https://www.linkedin.com/in/codewithedgard/"
             target="_blank"
