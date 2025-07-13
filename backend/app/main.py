@@ -13,10 +13,11 @@ app = FastAPI(title="Production Dashboard API")
 # --- CONFIGURAÇÃO DO CORS ---
 # Lista de origens permitidas (domínios que podem fazer requisições para nossa API)
 origins = [
-    "http://localhost",
-    "http://localhost:5173",  # A origem do nosso app React (Vite)
-    "http://127.0.0.1:5173", # Adicionar esta por segurança também
+    # "http://localhost",
+    # "http://localhost:5173",  # A origem do nosso app React (Vite)
+    # "http://127.0.0.1:5173", # Adicionar esta por segurança também
     # No futuro, adicionaremos a URL de produção do nosso front-end aqui
+    "*"
 ]
 
 app.add_middleware(
