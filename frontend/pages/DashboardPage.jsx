@@ -1,101 +1,151 @@
 // src/pages/DashboardPage.jsx
 
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  Button,
+  TextField,
+  Container,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Box,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Grid,
+  CircularProgress,
+} from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack,
+} from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Collapse,
+  IconButton,
+  CssBaseline,
+} from "@mui/material";
 
-// NOSSAS PÁGINAS E COMPONENTES
 import { useAuth } from "../context/AuthContext";
-import { toast } from 'react-toastify';
-import Spinner from "../components/Spinner";
+import { toast } from "react-toastify";
+import StatusBadge from "../components/StatusBadge";
+
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 const API_URL = "http://127.0.0.1:8000";
 
+const statusOptions = [
+  "entregue",
+  "pendente recebimento",
+  "aguardando entrada",
+  "troca entre obras",
+  "N/A",
+];
+
+const statusProd = ["estrutura", "produção", "expedição"];
+
 function DashboardPage() {
-  // --- ESTADOS DO COMPONENTE ---
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  // Lista de ordens vinda da API
   const [orders, setOrders] = useState([]);
-
-  // Estados para feedback ao usuário
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const ORDERS_PER_PAGE = 10;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [expandedRowId, setExpandedRowId] = useState(null);
 
-  // Estado para os dados do formulário
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     obra_number: "",
     nro_op: "",
-    // ... adicione aqui os outros campos com valores iniciais vazios
-  });
+    transf_potencia_status: "pendente",
+    transf_corrente_status: "pendente",
+    chave_secc_status: "pendente",
+    disjuntor_status: "pendente",
+    bucha_iso_raio_status: "pendente",
+    geral_status: "produção",
+    descricao: "",
+    ca_r167: "",
+    nobreak: "",
+  };
 
-  // Estado para controlar se estamos editando ou criando
-  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState(initialFormData);
 
-  // Paginas
-  const [currentPage, setCurrentPage] = useState(0);
-  const ORDERS_PER_PAGE = 10; // Quantas ordens queremos por página
-
-  // Status
-  const statusOptions = [
-    "ok",
-    "pendente recebimento",
-    "aguardando entrada",
-    "troca entre obras",
-    "entrega parcial",
-    "N/A",
-  ];
-  const statusProduction = ["estrutura", "produção", "expedição"];
-
-  // --- FUNÇÕES DE INTERAÇÃO COM A API ---
-
-  // 1. FUNÇÃO PARA BUSCAR TODAS AS ORDENS
+  // --- FUNÇÕES DE API ---
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const skip = currentPage * ORDERS_PER_PAGE;
-      const response = await axios.get(
-        `${API_URL}/orders/?skip=${skip}&limit=${ORDERS_PER_PAGE}`
-      );
+      let url = `${API_URL}/orders/?skip=${skip}&limit=${ORDERS_PER_PAGE}`;
+
+      // Se houver um termo de busca, adiciona-o como parâmetro de query
+      if (searchTerm) {
+        // Inteligência para decidir se busca por obra ou op
+        // (assume que OP geralmente tem letras e obra só números, mas pode ser melhorado)
+        if (isNaN(searchTerm)) {
+          url += `&nro_op=${searchTerm}`;
+        } else {
+          url += `&obra_number=${searchTerm}`;
+        }
+      }
+
+      const response = await axios.get(url);
       setOrders(response.data);
       setError("");
     } catch (err) {
-      // ... (resto da função continua igual) ...
+      // ... (código de erro)
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. FUNÇÃO PARA CRIAR OU ATUALIZAR UMA ORDEM
   const handleFormSubmit = async (e) => {
-    e.preventDefault(); // Impede o recarregamento da página
-
-    // A URL e o método mudam se estamos editando ou criando
+    e.preventDefault();
     const method = editingId ? "put" : "post";
     const url = editingId
       ? `${API_URL}/orders/${editingId}`
-      : `${API_URL}/orders/`;
+      : // O endpoint de criação é só /orders/
+        `${API_URL}/orders/`;
 
     try {
-      // Envia a requisição para a API com os dados do estado 'formData'
       await axios[method](url, formData);
+      toast.success(
+        `Ordem ${editingId ? "atualizada" : "criada"} com sucesso!`
+      );
 
-      // Mostra uma mensagem de sucesso
-      toast.success(`Ordem ${editingId ? 'atualizada' : 'criada'} com sucesso!`);
+      handleCloseModal(); // Fecha o modal
 
-      // Chama a função para limpar o formulário e resetar o modo de edição
-      resetForm();
-
-      // Chama a função para buscar e re-renderizar a lista de ordens
-      fetchOrders();
+      // Se estava editando, apenas recarrega os dados.
+      // Se estava criando, volta para a primeira página para ver o novo item.
+      if (!editingId && currentPage !== 0) {
+        setCurrentPage(0);
+      } else {
+        fetchOrders();
+      }
     } catch (err) {
       console.error("Erro ao salvar ordem:", err);
-      alert("Erro ao salvar a ordem.");
+      toast.error(err.response?.data?.detail || "Erro ao salvar a ordem.");
     }
   };
 
-  // 3. FUNÇÃO PARA DELETAR UMA ORDEM
   const handleDelete = async (orderId) => {
     if (
       window.confirm(
@@ -105,7 +155,7 @@ function DashboardPage() {
       try {
         await axios.delete(`${API_URL}/orders/${orderId}`);
         toast.success("Ordem deletada com sucesso!");
-        fetchOrders(); // Atualiza a lista
+        fetchOrders();
       } catch (err) {
         console.error("Erro ao deletar ordem:", err);
         toast.error("Erro ao deletar a ordem.");
@@ -113,12 +163,9 @@ function DashboardPage() {
     }
   };
 
-  // 4. FUNÇÃO PARA PREPARAR O FORMULÁRIO PARA EDIÇÃO
-  const handleEdit = (order) => {
-    setEditingId(order.id); // Define o ID que estamos editando
+  const handleOpenEditModal = (order) => {
+    setEditingId(order.id);
     setFormData({
-      // Preenche o formulário com os dados da ordem clicada
-
       obra_number: order.obra_number,
       nro_op: order.nro_op,
       transf_potencia_status: order.transf_potencia_status,
@@ -127,300 +174,679 @@ function DashboardPage() {
       disjuntor_status: order.disjuntor_status,
       bucha_iso_raio_status: order.bucha_iso_raio_status,
       geral_status: order.geral_status,
-      descricao: order.descricao || "", // Garante que não seja 'null'
-      ca: order.ca || "",
+      descricao: order.descricao || "",
       nobreak: order.nobreak || "",
     });
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Rola para o topo para ver o formulário
+    setIsModalOpen(true);
   };
 
   // --- FUNÇÕES AUXILIARES ---
 
-  // Função para limpar o formulário e voltar ao modo de criação
+  const handleRowClick = (orderId) => {
+    // Se a linha clicada já estiver aberta, fecha. Senão, abre a nova linha.
+    const newExpandedRowId = expandedRowId === orderId ? null : orderId;
+    setExpandedRowId(newExpandedRowId);
+  };
+
+  const handleOpenModal = () => {
+    resetForm(); // Limpa o formulário antes de abrir para garantir que está no modo "criar"
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
   const resetForm = () => {
     setEditingId(null);
-    setFormData({
-      obra_number: "",
-      nro_op: "",
-      transf_potencia_status: "pendente",
-      transf_corrente_status: "pendente",
-      chave_secc_status: "pendente",
-      disjuntor_status: "pendente",
-      bucha_iso_raio_status: "pendente",
-      geral_status: "produção",
-      descricao: "",
-      ca: "",
-      nobreak: "",
-    });
+    setFormData(initialFormData);
   };
 
-  // Função para lidar com a mudança nos campos do formulário
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+    setFormData((prevState) => ({ ...prevState, [name]: value }));
   };
 
-  // useEffect: Busca os dados assim que o componente carrega
-  useEffect(() => {
-    fetchOrders();
-  }, [currentPage]); // O array agora contém 'currentPage'
-
-  //
   const goToNextPage = () => {
-    // Só avança se a página atual não estiver vazia
-    if (orders.length === ORDERS_PER_PAGE) {
-      setCurrentPage((prevPage) => prevPage + 1);
-    }
+    if (orders.length === ORDERS_PER_PAGE) setCurrentPage((p) => p + 1);
   };
-
   const goToPreviousPage = () => {
-    setCurrentPage((prevPage) => Math.max(0, prevPage - 1));
+    setCurrentPage((p) => Math.max(0, p - 1));
   };
 
-  // --- RENDERIZAÇÃO DO JSX ---
+  // useEffect 1: Controla o "debounce" da busca
+  // Assiste o 'searchTerm' que o usuário digita
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms de atraso
+
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [searchTerm]); // Roda APENAS quando o 'searchTerm' do input muda
+
+  // useEffect 2: Busca os dados da API
+  // Assiste o 'debouncedSearchTerm' e a 'currentPage'
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      try {
+        let url = `${API_URL}/orders/?skip=${
+          currentPage * ORDERS_PER_PAGE
+        }&limit=${ORDERS_PER_PAGE}`;
+
+        // Agora usamos o termo com atraso para a busca
+        if (debouncedSearchTerm) {
+          if (isNaN(debouncedSearchTerm)) {
+            url += `&nro_op=${debouncedSearchTerm}`;
+          } else {
+            url += `&obra_number=${debouncedSearchTerm}`;
+          }
+        }
+        const response = await axios.get(url);
+        setOrders(response.data);
+        setError("");
+      } catch (err) {
+        console.error("Erro ao buscar ordens:", err);
+        setError("Falha ao carregar as ordens.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [debouncedSearchTerm, currentPage]);
   return (
-    <div>
-      <header>
-        <h1>Painel de Produção</h1>
-        <button
-          onClick={() => {
-            logout();
-            navigate("/login");
-          }}
-        >
-          Sair
-        </button>
-      </header>
-      <main>
-        {/* --- Formulário --- */}
-        <section>
-          <h2>
-            {editingId ? `Editando Ordem ID: ${editingId}` : "Criar Nova Ordem"}
-          </h2>
-          <form onSubmit={handleFormSubmit}>
-            <input
-              type="text"
-              name="obra_number"
-              value={formData.obra_number}
-              onChange={handleInputChange}
-              placeholder="Número da Obra"
-              required
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <CssBaseline /> {/* Aplica o reset de CSS */}
+      {/* =================================
+          1. CABEÇALHO (AppBar)
+       ================================= */}
+      <AppBar position="static" sx={{ flexShrink: 0 }}>
+        <Toolbar>
+          <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
+            Painel de Produção
+          </Typography>
+
+          {/* --- Links de Navegação --- */}
+          <Box sx={{ display: { xs: "none", md: "flex" }, mr: 2 }}>
+            {" "}
+            {/* Esconde em telas pequenas */}
+            <Button component={Link} to="/dashboard" color="inherit">
+              Dashboard
+            </Button>
+            <Button component={Link} to="/reports" color="inherit">
+              Relatórios
+            </Button>
+            <Button component={Link} to="/users-management" color="inherit">
+              Usuários
+            </Button>
+          </Box>
+
+          {/* --- Botão de Sair --- */}
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            sx={{ borderColor: "rgba(255, 255, 255, 0.5)" }} // Borda sutil
+          >
+            Sair
+          </Button>
+        </Toolbar>
+      </AppBar>
+      {/* =================================
+          2. CONTEÚDO PRINCIPAL (Main)
+       ================================= */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1, // Faz esta área crescer para ocupar o espaço
+          overflowY: "auto", // Adiciona rolagem vertical apenas aqui
+          p: 3,
+          backgroundColor: "#f4f6f8", // Fundo cinza claro para o conteúdo
+        }}
+      >
+        <Container maxWidth="xl">
+          {/* --- MODAL PARA CRIAR/EDITAR --- */}
+
+          <Dialog
+            open={isModalOpen}
+            onClose={handleCloseModal}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              {editingId
+                ? `Editando Ordem ID: ${editingId}`
+                : "Criar Nova Ordem"}
+            </DialogTitle>
+            <DialogContent>
+              {/* O FORMULÁRIO AGORA VIVE DENTRO DO MODAL */}
+              <Box
+                component="form"
+                id="order-form"
+                onSubmit={handleFormSubmit}
+                sx={{ pt: 1 }}
+              >
+                {/* Stack é um container Flexbox unidimensional. Perfeito para formulários! */}
+                <Stack spacing={2}>
+                  {/* Campo 1 */}
+                  <TextField
+                    label="Número da Obra"
+                    name="obra_number"
+                    value={formData.obra_number}
+                    onChange={handleInputChange}
+                    fullWidth
+                    required
+                  />
+
+                  {/* Campo 2 */}
+                  <TextField
+                    label="NRO OP"
+                    name="nro_op"
+                    value={formData.nro_op}
+                    onChange={handleInputChange}
+                    fullWidth
+                    required
+                  />
+
+                  {/* Agora, os menus dropdown. Usaremos a mesma abordagem um por linha */}
+
+                  <FormControl fullWidth>
+                    <InputLabel>Status T. Potência</InputLabel>
+                    <Select
+                      label="Status T. Potência"
+                      name="transf_potencia_status"
+                      value={formData.transf_potencia_status}
+                      onChange={handleInputChange}
+                    >
+                      {statusOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Status T. Corrente</InputLabel>
+                    <Select
+                      label="Status T. Corrente"
+                      name="transf_corrente_status"
+                      value={formData.transf_corrente_status}
+                      onChange={handleInputChange}
+                    >
+                      {statusOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Chave Secc.</InputLabel>
+                    <Select
+                      name="chave_secc_status"
+                      label="Chave Secc."
+                      value={formData.chave_secc_status}
+                      onChange={handleInputChange}
+                    >
+                      {statusOptions.map((o) => (
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Disjuntor</InputLabel>
+                    <Select
+                      name="disjuntor_status"
+                      label="Disjuntor"
+                      value={formData.disjuntor_status}
+                      onChange={handleInputChange}
+                    >
+                      {statusOptions.map((o) => (
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Bucha/Iso</InputLabel>
+                    <Select
+                      name="bucha_iso_raio_status"
+                      label="Bucha/Iso"
+                      value={formData.bucha_iso_raio_status}
+                      onChange={handleInputChange}
+                    >
+                      {statusOptions.map((o) => (
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Status Geral</InputLabel>
+                    <Select
+                      name="geral_status"
+                      label="Status Geral"
+                      value={formData.geral_status}
+                      onChange={handleInputChange}
+                    >
+                      {statusProd.map((o) => (
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* --- Outros Campos --- */}
+
+                  <FormControl fullWidth>
+                    <InputLabel>Nobreak</InputLabel>
+                    <Select
+                      name="nobreak"
+                      label="Nobreak"
+                      value={formData.nobreak}
+                      onChange={handleInputChange}
+                    >
+                      {statusOptions.map((o) => (
+                        <MenuItem key={o} value={o}>
+                          {o}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* <TextField
+                  label="C.A"
+                  name="ca_r167"
+                  value={formData.ca_r167}
+                  onChange={handleInputChange}
+                  fullWidth
+                /> */}
+
+                  <TextField
+                    label="Descrição"
+                    name="descricao"
+                    value={formData.descricao}
+                    onChange={handleInputChange}
+                    fullWidth
+                    multiline
+                    rows={3}
+                  />
+                  
+                </Stack>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseModal}>Cancelar</Button>
+              <Button type="submit" form="order-form" variant="contained">
+                {editingId ? "Salvar Alterações" : "Adicionar Ordem"}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* --- Bloco de Ações da Página --- */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h4" component="h1">
+              Painel de Produção
+            </Typography>
+            <Button variant="contained" onClick={handleOpenModal}>
+              + Adicionar Ordem
+            </Button>
+          </Box>
+
+          {/* --- Barra de Busca --- */}
+          <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+            <TextField
+              fullWidth
+              label="Pesquisar por Nº Obra ou NRO OP"
+              variant="outlined"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <input
-              type="text"
-              name="nro_op"
-              value={formData.nro_op}
-              onChange={handleInputChange}
-              placeholder="NRO OP"
-              required
-            />
+          </Paper>
 
-            {/* --- CAMPOS DE STATUS --- */}
-
-            {/* //  TP */}
-            <div>
-              <label>Transf. Potência:</label>
-              <select
-                name="transf_potencia_status"
-                value={formData.transf_potencia_status}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* // TC  */}
-            <div>
-              <label>Transf. Corrente:</label>
-              <select
-                name="transf_corrente_status"
-                value={formData.transf_corrente_status}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* // SECC. */}
-            <div>
-              <label>Chave Seccionadora:</label>
-              <select
-                name="Chave Seccionadora."
-                value={formData.chave_secc_status}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* // DISJ.  */}
-            <div>
-              <label>Disjuntores:</label>
-              <select
-                name="Disjuntores"
-                value={formData.disjuntor_status}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* // BUCHA */}
-            <div>
-              <label>Bucha/Iso/Raio:</label>
-              <select
-                name="Bucha/Iso/Raio"
-                value={formData.bucha_iso_raio_status}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* // NOBREAK */}
-            <div>
-              <label>Nobreak:</label>
-              <select
-                name="Nobreak"
-                value={formData.nobreak}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* // STATUS */}
-            <div>
-              <label>Status de Produção:</label>
-              <select
-                name="Status"
-                value={formData.statusProduction}
-                onChange={handleInputChange}
-              >
-                {statusProduction.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* --- OUTRAS INFORMAÇÕES --- */}
-            <div>
-              <input
-                type="text"
-                name="descricao"
-                value={formData.descricao}
-                onChange={handleInputChange}
-                placeholder="Descrição"
-              />
-            </div>
-
-            {/* // CA NÃO NECESSARIO POREM JÁ IMPLEMENTADO */}
-            {/* <div>
-              <label>CA:</label>
-              <select
-                name="CA"
-                value={formData.ca}
-                onChange={handleInputChange}
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div> */}
-
-            <button type="submit">
-              {editingId ? "Salvar Alterações" : "Adicionar Ordem"}
-            </button>
-            {editingId && (
-              <button type="button" onClick={resetForm}>
-                Cancelar Edição
-              </button>
+          {/* --- TABELA  --- */}
+          <Paper elevation={2}>
+            {loading && (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress />
+              </Box>
             )}
-          </form>
-        </section>
+            {!error && !loading && (
+              <TableContainer component={Paper}>
+                <Table size="small" aria-label="production-orders-table">
+                  <TableHead>
+                    <TableRow
+                      sx={{
+                        // Adiciona uma cor de fundo suave ao cabeçalho
+                        "& th": {
+                          backgroundColor: "grey.100", // Um cinza bem claro
+                          fontWeight: "bold", // Deixa o texto em negrito
+                          borderBottom: "2px solid", // Uma borda inferior mais grossa
+                          borderColor: "grey.300",
+                        },
+                      }}
+                    >
+                      <TableCell sx={{ width: "5%" }} />
+                      <TableCell sx={{ width: "15%" }}>OBRA</TableCell>
+                      <TableCell sx={{ width: "15%" }}>NRO OP</TableCell>
+                      <TableCell>STATUS GERAL</TableCell>
+                      <TableCell>CRIADO POR</TableCell>
+                      <TableCell>ÚLTIMA MODIFICAÇÃO</TableCell>
+                      <TableCell align="right" sx={{ width: "20%" }}>
+                        AÇÕES
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {orders.map((order) => {
+                      const isExpanded = expandedRowId === order.id;
+                      return (
+                        <React.Fragment key={order.id}>
+                          {/* LINHA PRINCIPAL - RESUMIDA */}
+                          <TableRow
+                            sx={{ "& > *": { borderBottom: "unset" } }}
+                            hover
+                          >
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRowClick(order.id)}
+                              >
+                                {isExpanded ? (
+                                  <KeyboardArrowUpIcon />
+                                ) : (
+                                  <KeyboardArrowDownIcon />
+                                )}
+                              </IconButton>
+                            </TableCell>
+                            <TableCell>{order.obra_number}</TableCell>
 
-        {/* --- Tabela --- */}
-        <section>
-          <h2>Ordens de Produção</h2>
-          {loading && <Spinner />}
-          {error && <p style={{ color: "red" }}>{error}</p>}
-          {!loading && !error && (
-            <table>
-              <thead>
-                <tr>
-                  <th>Obra</th>
-                  <th>NRO OP</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td>{order.obra_number}</td>
-                    <td>{order.nro_op}</td>
-                    <td>{order.geral_status}</td>
-                    <td>
-                      <button onClick={() => handleEdit(order)}>
-                        ✏️ Editar
-                      </button>
-                      <button onClick={() => handleDelete(order.id)}>
-                        🗑️ Deletar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+                            <TableCell>{order.nro_op}</TableCell>
 
-              {/* --- CONTROLES DE PAGINAÇÃO --- */}
-              <div>
-                <button onClick={goToPreviousPage} disabled={currentPage === 0}>
-                  Página Anterior
-                </button>
-                <span> Página {currentPage + 1} </span>
-                <button
-                  onClick={goToNextPage}
-                  disabled={orders.length < ORDERS_PER_PAGE}
-                >
-                  Próxima Página
-                </button>
-              </div>
-            </table>
-          )}
-        </section>
-      </main>
-    </div>
+                            <TableCell>
+                              <Box
+                                component="span"
+                                sx={{
+                                  // Lógica para definir a cor de fundo baseada no status
+                                  bgcolor:
+                                    order.geral_status === "produção"
+                                      ? "primary.main"
+                                      : order.geral_status === "estrutura"
+                                      ? "warning.main"
+                                      : order.geral_status === "concluido"
+                                      ? "success.main"
+                                      : "grey.500", // Uma cor padrão para outros status
+                                  color: "white", // Cor do texto
+                                  px: 1.5, // Padding horizontal
+                                  py: 0.5, // Padding vertical
+                                  borderRadius: "12px", // Bordas arredondadas
+                                  fontSize: "0.75rem", // Tamanho da fonte
+                                  fontWeight: "bold", // Fonte em negrito
+                                }}
+                              >
+                                {order.geral_status}
+                              </Box>
+                            </TableCell>
+
+                            <TableCell>
+                              {order.owner ? order.owner.email : "N/A"}
+                            </TableCell>
+
+                            <TableCell>
+                              {new Date(order.updated_at).toLocaleString('pt-BR')}{order.last_updated_by && (
+            <Typography variant="caption" color="text.secondary" component="div">
+                by: {order.last_updated_by.email}
+            </Typography>
+        )}
+                            </TableCell>
+
+
+                            <TableCell align="right">
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "flex-end",
+                                  gap: 1,
+                                }}
+                              >
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => handleOpenEditModal(order)}
+                                >
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  onClick={() => handleDelete(order.id)}
+                                >
+                                  Deletar
+                                </Button>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+
+                          {/* LINHA EXPANSÍVEL - DETALHES */}
+                          <TableRow>
+                            <TableCell
+                              style={{ paddingBottom: 0, paddingTop: 0 }}
+                              colSpan={7}
+                            >
+                              <Collapse
+                                in={isExpanded}
+                                timeout="auto"
+                                unmountOnExit
+                              >
+                                {/* Este Box é o container principal que resolve o problema do fundo */}
+                                <Box
+                                  sx={{
+                                    margin: 1,
+                                    padding: 2,
+                                    backgroundColor: "rgba(0, 0, 0, 0.02)", // Um cinza quase branco, muito sutil
+                                    borderTop: "1px solid",
+                                    borderColor: "divider",
+                                  }}
+                                >
+                                  <Typography
+                                    variant="h6"
+                                    gutterBottom
+                                    component="div"
+                                    sx={{ fontWeight: "bold" }}
+                                  >
+                                    Detalhes da Ordem #{order.id}
+                                  </Typography>
+
+                                  {/* --- TABELA DE STATUS E DETALHES --- */}
+                                  <Table size="small" sx={{ mb: 2 }}>
+                                    <TableBody>
+                                      <TableRow>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          T. Potência:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          <StatusBadge
+                                            status={
+                                              order.transf_potencia_status
+                                            }
+                                          />
+                                        </TableCell>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          Nobreak:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          {order.nobreak || "N/A"}
+                                        </TableCell>
+                                      </TableRow>
+                                      <TableRow>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          T. Corrente:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          <StatusBadge
+                                            status={
+                                              order.transf_corrente_status
+                                            }
+                                          />
+                                        </TableCell>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          Data de Criação:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          {new Date(
+                                            order.created_at
+                                          ).toLocaleString("pt-BR")}
+                                        </TableCell>
+                                      </TableRow>
+                                      <TableRow>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          Chave Secc.:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          <StatusBadge
+                                            status={order.chave_secc_status}
+                                          />
+                                        </TableCell>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        ></TableCell>
+                                        <TableCell
+                                          sx={{ border: 0 }}
+                                        ></TableCell>
+                                      </TableRow>
+                                      <TableRow>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          Disjuntor:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          <StatusBadge
+                                            status={order.disjuntor_status}
+                                          />
+                                        </TableCell>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        ></TableCell>
+                                        <TableCell
+                                          sx={{ border: 0 }}
+                                        ></TableCell>
+                                      </TableRow>
+                                      <TableRow>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        >
+                                          Bucha/Iso:
+                                        </TableCell>
+                                        <TableCell sx={{ border: 0 }}>
+                                          <StatusBadge
+                                            status={order.bucha_iso_raio_status}
+                                          />
+                                        </TableCell>
+                                        <TableCell
+                                          sx={{ fontWeight: "bold", border: 0 }}
+                                        ></TableCell>
+                                        <TableCell
+                                          sx={{ border: 0 }}
+                                        ></TableCell>
+                                      </TableRow>
+                                    </TableBody>
+                                  </Table>
+
+                                  {/* --- DESCRIÇÃO --- */}
+                                  <Typography variant="body2" sx={{ mt: 1 }}>
+                                    <strong>Descrição:</strong>{" "}
+                                    {order.descricao || "Nenhuma"}
+                                  </Typography>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+
+          {/* --- Paginação --- */}
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 2, p: 2 }}>
+            <Button onClick={goToPreviousPage} disabled={currentPage === 0}>
+              Anterior
+            </Button>
+            <Typography sx={{ mx: 2, alignSelf: "center" }}>
+              Página {currentPage + 1}
+            </Typography>
+            <Button
+              onClick={goToNextPage}
+              disabled={orders.length < ORDERS_PER_PAGE}
+            >
+              Próxima
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+      {/* =================================
+          3. RODAPÉ (Footer)
+       ================================= */}
+      <Box
+        component="footer"
+        sx={{
+          flexShrink: 0, // Impede que o rodapé encolha
+          p: 1.5,
+          textAlign: "center",
+          backgroundColor: "grey.200",
+          borderTop: "1px solid",
+          borderColor: "grey.300",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          Production Dashboard © {new Date().getFullYear()} | Desenvolvido por:
+          <Link
+            href="https://www.linkedin.com/in/codewithedgard/"
+            target="_blank"
+            sx={{ ml: 0.5, fontWeight: "bold" }}
+          >
+            Edgar Mendes
+          </Link>
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 

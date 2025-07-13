@@ -27,18 +27,27 @@ class ProductionOrderBase(BaseModel):
     bucha_iso_raio_status: str = "pendente"
     geral_status: str = "produção"
     descricao: str | None = None
-    ca: str | None = None
+    ca_r167: str | None = None
     nobreak: str | None = None
 
 class ProductionOrderCreate(ProductionOrderBase):
     pass
 
+class UserInDB(UserBase):
+    id: int
+    email: EmailStr
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
 class ProductionOrder(ProductionOrderBase):
     id: int
     owner_id: int
-    created_at: datetime
-    # Permite que updated_at seja nulo, embora nosso DB o defina
-    updated_at: datetime | None = None 
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    owner: UserInDB 
+    last_updated_by: UserInDB | None = None
 
     class Config:
         from_attributes = True

@@ -104,7 +104,12 @@ def update_order(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_active_user)
 ):
-    updated_order = crud.update_order(db=db, order_id=order_id, order_data=order)
+    updated_order = crud.update_order(
+        db=db, 
+        order_id=order_id, 
+        order_data=order, 
+        user_id=current_user.id
+    )
     if updated_order is None:
         raise HTTPException(status_code=404, detail="Order not found to update")
     return updated_order

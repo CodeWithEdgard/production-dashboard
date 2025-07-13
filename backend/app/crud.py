@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, security
 from typing import Optional
+from sqlalchemy.orm import joinedload 
 
 # Busca um usuário pelo seu endereço de e-mail.
 def get_user_by_email(db: Session, email: str):
@@ -32,7 +33,7 @@ def create_production_order(db: Session, order: schemas.ProductionOrderCreate, o
         bucha_iso_raio_status=order.bucha_iso_raio_status,
         geral_status=order.geral_status,
         descricao=order.descricao,
-        ca=order.ca,
+        ca_r167=order.ca_r167,
         nobreak=order.nobreak,
         owner_id=owner_id
     )
@@ -51,7 +52,10 @@ def get_orders(
     limit: int = 100
 ):
     # Inicia uma query base que podemos modificar
-    query = db.query(models.ProductionOrder)
+    query = db.query(models.ProductionOrder).options(
+    joinedload(models.ProductionOrder.owner),
+    joinedload(models.ProductionOrder.last_updated_by) # <-- NOVO
+)
 
     # Adiciona filtros à query se os parâmetros forem fornecidos
     if obra_number:
@@ -60,8 +64,8 @@ def get_orders(
     if nro_op:
         query = query.filter(models.ProductionOrder.nro_op == nro_op)
     
-    # Aplica a paginação e executa a query final
-    return query.offset(skip).limit(limit).all()
+    # ORDENA PELA DATA DE ATUALIZAÇÃO MAIS RECENTE
+    return query.order_by(models.ProductionOrder.updated_at.desc()).offset(skip).limit(limit).all()
 
 # Busca uma ordem específica pelo NRO OP para evitar duplicatas.
 def get_order_by_nro_op(db: Session, nro_op: str):
@@ -69,21 +73,22 @@ def get_order_by_nro_op(db: Session, nro_op: str):
 
 # Busca uma ordem específica pelo seu ID.
 def get_order_by_id(db: Session, order_id: int):
-  return db.query(models.ProductionOrder).filter(models.ProductionOrder.id == order_id).first()
+  return db.query(models.ProductionOrder).options(
+    joinedload(models.ProductionOrder.owner),
+    joinedload(models.ProductionOrder.last_updated_by) # <-- NOVO
+).filter(models.ProductionOrder.id == order_id).first()
 
 # Atualiza uma ordem de produção existente.
-def update_order(db: Session, order_id: int, order_data: schemas.ProductionOrderCreate):
+def update_order(db: Session, order_id: int, order_data: schemas.ProductionOrderCreate, user_id: int):
     db_order = get_order_by_id(db, order_id=order_id)
     if not db_order:
         return None
 
-    # Converte o Pydantic model para um dicionário
     update_data = order_data.dict(exclude_unset=True)
-
-    # Itera sobre os dados recebidos e atualiza o objeto do banco
     for key, value in update_data.items():
         setattr(db_order, key, value)
-    
+        
+    db_order.last_updated_by_id = user_id # Atualiza o ID do editor
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
