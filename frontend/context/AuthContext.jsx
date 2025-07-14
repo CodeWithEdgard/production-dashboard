@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../src/config/apiConfig';
 
 // 1. Cria o Contexto
 const AuthContext = createContext();
@@ -25,7 +26,7 @@ export function AuthProvider({ children }) {
 
 
   const login = async (email, password) => {
-    const API_URL = "http://127.0.0.1:8000";
+    
     const formData = new URLSearchParams();
     formData.append('username', email);
     formData.append('password', password);

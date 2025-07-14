@@ -36,7 +36,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/users/me", response_model=schemas.User, tags=["Authentication"])
-def read_users_me(current_user: models.User = Depends(auth.get_current_active_user)):
+def read_users_me(current_user: models.User = Depends(get_current_active_user)):
     return current_user
 
 # =======================================
@@ -47,7 +47,7 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_active_us
 def create_order(
     order: schemas.ProductionOrderCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user)
 ):
     existing_order = db.query(models.ProductionOrder).filter(models.ProductionOrder.nro_op == order.nro_op).first()
     if existing_order:
@@ -63,7 +63,7 @@ def read_orders(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user)
 ):
     orders = crud.get_orders(
         db, 
@@ -80,7 +80,7 @@ def update_order(
     order_id: int, 
     order: schemas.ProductionOrderCreate, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user)
 ):
     updated_order = crud.update_order(
         db=db, 
@@ -97,7 +97,7 @@ def update_order(
 def delete_order(
     order_id: int, 
     db: Session = Depends(get_db), 
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user)
 ):
     deleted_order = crud.delete_order(db=db, order_id=order_id)
     if deleted_order is None:
