@@ -1,61 +1,59 @@
-// src/App.jsx
 
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Link,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet  } from "react-router-dom";
+import { Layout } from "./components/layout/Layout";
 
-// NOSSAS PÁGINAS
-import LoginPage from "../pages/LoginPage";
-import DashboardPage from "../pages/DashboardPage";
+const Recebimento = () => (
+  <div className="container mx-auto p-4">
+    <h1 className="text-2x1 font-bold">Página do recebimento</h1>
+  </div>
+);
 
-// NOSSOS COMPONENTES E LÓGICA
-import ProtectedRoute from "../components/ProtectedRoute";
-import { useAuth } from "../context/AuthContext";
+const Separação = () => (
+  <div className="container mx-auto p-4">
+    <h1 className="text-2x1 font-bold">Página do separacao</h1>
+  </div>
+);
 
-// OUTROS IMPORTS
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+const Requisição = () => (
+  <div className="container mx-auto p-4">
+    <h1 className="text-2x1 font-bold">Página do requisicao</h1>
+  </div>
+);
 
-// 1. FUNÇOES AUXILIARES
-function Home() {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? (
-    <Navigate to="/dashboard" />
-  ) : (
-    <Navigate to="/login" />
-  );
+const Alteração = () => (
+  <div className="container mx-auto p-4">
+    <h1 className="text-2x1 font-bold">Página do alteracao</h1>
+  </div>
+);
+
+const Relatoriornc = () => (
+  <div className="container mx-auto p-4">
+    <h1 className="text-2x1 font-bold">Página do rnc</h1>
+  </div>
+);
+
+function AppLayout() {
+  return (
+
+    <Layout>
+      <Outlet /> {/* O <Outlet> renderiza a página filha aqui */}
+    </Layout>
+  )
 }
 
 function App() {
   return (
     <Router>
-      <ToastContainer
-        position="top-right" // Posição na tela
-        autoClose={3000} // Fecha automaticamente após 3 segundos
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/" element={<Home />} />
+
+        <Route path="/" element={<AppLayout />}> 
+        <Route path="recebimento" element={<Recebimento />} />
+        <Route path="separacao" element={<Separação />} />
+        <Route path="requisicao" element={<Requisição />} />
+        <Route path="alteracao" element={<Alteração />} />
+        <Route path="relatoriornc" element={<Relatoriornc />} />
+      
+        </Route>
       </Routes>
     </Router>
   );
