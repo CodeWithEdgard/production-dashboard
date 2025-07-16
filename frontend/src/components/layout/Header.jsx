@@ -7,7 +7,7 @@ export function Header () {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
       <a href="/" className="text-lg font-bold">
-        Elak Labs
+      Elak Labs 
       </a>
 
       {/* Links de Navegação */}

@@ -1,6 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route, Outlet  } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
+import { DashboardPage } from "./pages/DashboardPage";
 
 const Recebimento = () => (
   <div className="container mx-auto p-4">
@@ -47,6 +48,7 @@ function App() {
       <Routes>
 
         <Route path="/" element={<AppLayout />}> 
+        <Route index element={<DashboardPage />} />  {/* KPI*/}
         <Route path="recebimento" element={<Recebimento />} />
         <Route path="separacao" element={<Separação />} />
         <Route path="requisicao" element={<Requisição />} />
