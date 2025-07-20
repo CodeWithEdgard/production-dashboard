@@ -28,6 +28,7 @@ app.add_middleware(
 # --- MONTAGEM DO ROTEADOR DA API ---
 app.include_router(recebimento)
 
+
 # Endpoint raiz apenas para um health check
 @app.get("/")
 def read_root():
