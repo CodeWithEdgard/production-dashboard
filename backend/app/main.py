@@ -1,10 +1,15 @@
-# backend/app/main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from .database import Base, engine
+from app.receiving import models 
 from .database import engine, Base
-from .api import router as api_router # Importa nosso novo roteador
+
+from app.receiving.routes import router as recebimento
+
+
 
 # Cria as tabelas no DB
 Base.metadata.create_all(bind=engine)
@@ -21,10 +26,9 @@ app.add_middleware(
 )
 
 # --- MONTAGEM DO ROTEADOR DA API ---
-# Inclui todas as rotas do arquivo api.py sob o prefixo /api
-app.include_router(api_router, prefix="/api")
+app.include_router(recebimento)
 
 # Endpoint raiz apenas para um health check
 @app.get("/")
 def read_root():
-    return {"status": "API is running"}
+    return {"status": "API is running recebimento"}
