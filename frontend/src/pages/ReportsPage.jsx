@@ -1,14 +1,18 @@
-
+// frontend/src/pages/ReportsPage.jsx
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+// <<< CORREÇÃO 1: Adicionada a extensão .js >>>
+import { cn } from "@/lib/utils.js";
+
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { RecentOrdersTable } from "@/components/tables/RecentOrdersTable"; // Reutilizando a tabela!
+
+// <<< CORREÇÃO 2: Adicionada a extensão .jsx >>>
+import { RecentOrdersTable } from "@/components/tables/RecentOrdersTable.jsx"; 
 
 export function ReportsPage() {
   const [date, setDate] = useState({
@@ -70,8 +74,6 @@ export function ReportsPage() {
       
       {/* Seção de Resultados */}
       <div className="pt-4">
-        {/* Aqui reutilizamos a tabela que já tínhamos feito.
-            No futuro, os dados dela viriam do filtro acima. */}
         <RecentOrdersTable />
       </div>
     </div>
