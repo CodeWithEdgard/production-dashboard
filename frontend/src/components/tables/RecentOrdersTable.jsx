@@ -20,6 +20,10 @@ const orders = [
   { id: 'ORD-005', product: 'Montagem D-1', quantity: 500, status: 'Concluído' },
 ];
 
+const pedidos = [
+  {nf: '123442', npd: '743', valor: '153.92', volume: '14', fornecedor: 'abb', recby: 'Joao'}
+]
+
 // Mapeamento de status para estilos do Badge
 const statusStyles = {
   'Concluído': 'default',
@@ -31,7 +35,7 @@ export function RecentOrdersTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pedidos de Produção Recentes</CardTitle>
+        <CardTitle>Recebimento de Materiais</CardTitle>
         <CardDescription>Acompanhe os últimos 5 pedidos processados.</CardDescription>
       </CardHeader>
       <CardContent>

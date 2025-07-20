@@ -11,7 +11,12 @@ export function Header () {
       </a>
 
       {/* Links de Navegação */}
+
       <div className="flex items-center space-x-6">
+        {/* 
+        <a href="/relatorio" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+        Gerador de Relatorios</a>
+          */}
         <a href="/recebimento" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
         Recebimento</a>
 
