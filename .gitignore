@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Não ignore arquivos na pasta lib do frontend
+!frontend/src/lib/
+!frontend/src/lib/**
