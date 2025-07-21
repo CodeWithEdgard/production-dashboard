@@ -1,9 +1,6 @@
-// frontend/src/pages/ReportsPage.jsx
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-
-// <<< CORREÇÃO 1: Adicionada a extensão .js >>>
 import { cn } from "@/lib/utils.js";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-// <<< CORREÇÃO 2: Adicionada a extensão .jsx >>>
+
 import { RecentOrdersTable } from "@/components/tables/RecentOrdersTable.jsx"; 
 
 export function ReportsPage() {

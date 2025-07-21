@@ -1,12 +1,6 @@
-// frontend/src/api.js
 
 import axios from 'axios';
 
-// --- A LÓGICA INTELIGENTE ESTÁ AQUI ---
-
-// Vite expõe as variáveis de ambiente no objeto 'import.meta.env'.
-// Tentamos ler a VITE_API_URL. Se ela não existir (desenvolvimento local),
-// usamos 'http://localhost:8000/api' como padrão.
 const apiURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Esta linha é para debug. Verifique o console do navegador.

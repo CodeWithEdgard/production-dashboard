@@ -61,22 +61,45 @@ export function ReceivingPage() {
   // --- MUTATIONS ---
   const createMutation = useMutation({
     mutationFn: createRecebimento,
-    onSuccess: () => {
-      // Invalida a query para que a tabela mostre o novo item na primeira página.
+    onSuccess: (data) => { // 'data' é a resposta bem-sucedida da API
+      // Invalida a query para que a tabela seja atualizada
       queryClient.invalidateQueries({ queryKey: ['recebimentos'] });
+      
+      // Fecha o Drawer de registro
       setActiveAction({ type: null, data: null });
+
+      // <<< ADICIONADO: Feedback de sucesso >>>
+      toast.success("Recebimento Registrado!", {
+          description: `A Nota Fiscal nº ${data.nfNumber} foi registrada e enviada para conferência.`,
+      });
     },
-    onError: (err) => toast.error("Falha ao Criar", { description: err.response?.detail || "NF ou Pedido já Cadastrado.",})
+    onError: (err) => {
+      // Usa o 'toast' de erro que já implementamos
+      toast.error("Falha ao Registrar", {
+          description: err.response?.data?.detail || "Ocorreu um erro inesperado.",
+      });
+    },
   });
   
   const updateMutation = useMutation({
     mutationFn: updateRecebimento,
-    onSuccess: () => {
-      // Invalida para atualizar a linha que foi modificada.
+    onSuccess: (data) => {
+      // Invalida a query para que a tabela seja atualizada
       queryClient.invalidateQueries({ queryKey: ['recebimentos'] });
+      
+      // Fecha o Drawer de conferência
       setActiveAction({ type: null, data: null });
+      
+      // <<< ADICIONADO: Feedback de sucesso >>>
+      toast.success("Conferência Concluída!", {
+          description: `O recebimento da NF nº ${data.nfNumber} foi atualizado para o status: ${data.status}.`,
+      });
     },
-    onError: (err) => toast.error("Falha ao Atualizar", { description: err.response?.detail || "Ocorreu um erro inesperado.",})
+    onError: (err) => {
+      toast.error("Falha ao Salvar Conferência", {
+          description: err.response?.data?.detail || "Ocorreu um erro inesperado.",
+      });
+    },
   });
 
   // --- Handlers ---
@@ -132,11 +155,21 @@ const handleRejectEntry = () => {
   const rejectMutation = useMutation({
     mutationFn: rejectRecebimentoEntry,
     onSuccess: () => {
+      // 1. Invalida a query para que a tabela seja atualizada com o novo status
       queryClient.invalidateQueries({ queryKey: ['recebimentos'] });
-      setItemToConference(null); // Fecha o AlertDialog
+      
+      // <<< A LINHA QUE FALTAVA ESTÁ AQUI >>>
+      // 2. Atualiza o estado da UI para fechar o Dialog de Rejeição
+      setItemToReject(null); 
+      
+      // 3. (Bônus) Dá um feedback visual de sucesso para o usuário
+      toast.success("Entrada rejeitada com sucesso!");
     },
-  
-    onError: (err) => toast.error("Erro ao rejeitar", { description: err.response?.detail || "Ocorreu um erro inesperado.",})
+    onError: (err) => {
+        toast.error("Falha ao Rejeitar", {
+            description: err.response?.data?.detail || "Ocorreu um erro inesperado.",
+        });
+    },
   });
   
 

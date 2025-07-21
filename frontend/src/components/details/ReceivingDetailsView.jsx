@@ -63,16 +63,18 @@ export function ReceivingDetailsView({ item, onResolvePendency }) {
               </span>
             </DetailItem>
             <DetailItem label="Tipo de Pendência">{details.issueType}</DetailItem>
-            <DetailItem label="Pendência Resolvida?">{details.issueResolved ? "Sim" : "Não"}</DetailItem>
+            
             <DetailItem label="Material do Cliente?">{details.isClientMaterial ? "Sim" : "Não"}</DetailItem>
             <DetailItem label="Material Recusado?">
                 <span className={details.refusedMaterial ? 'text-red-600' : 'text-green-600'}>
                     {details.refusedMaterial ? "Sim" : "Não"}
                 </span>
             </DetailItem>
+            {/*
             <div className="col-span-full">
               <DetailItem label="Observação sobre Pontualidade">{details.supplierNote}</DetailItem>
-            </div>
+            </div> */}
+            
             {/* <<< ADICIONADO: Exibe a descrição da pendência se houver >>> */}
             {details.issueDescription && (
               <div className="col-span-full">

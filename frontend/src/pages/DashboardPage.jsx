@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { ProductionChart } from "@/components/charts/ProductionChart"; 
 import { RecentOrdersTable } from "@/components/tables/RecentOrdersTable";
+import { ReceivingPage } from "./ReceivingPage";
 
 export function DashboardPage() {
   return (
