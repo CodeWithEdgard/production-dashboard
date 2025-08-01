@@ -1,9 +1,11 @@
+# backend/app/receiving/schemas.py
 
 from pydantic import BaseModel, Field
 from typing import Optional, Literal, List
 from datetime import datetime
 import enum
 
+# --- Schemas Auxiliares ---
 
 class StatusRecebimento(str, enum.Enum):
     AGUARDANDO_CONFERENCIA = "Aguardando Conferência"
@@ -12,42 +14,59 @@ class StatusRecebimento(str, enum.Enum):
     PENDENTE = "Pendente"
     ENTRADA_REJEITADA = "Entrada Rejeitada"
 
-# Detalhes da Conferência 
 class RecebimentoDetails(BaseModel):
-    # pontualidade
     expectedDate: datetime  
     deliveryDate: datetime 
-    punctual: bool = Field(description="Entregue no prazo?")
-    supplierNote: Optional[str] = Field(None, description="Observação sobre pontualidade")
-    
-    # qualidade
-    issueType: Literal["sem pendência", "avaria", "item errado", "quantidade incorreta", "outro"] = "sem pendência"
-    issueDescription: Optional[str] = Field(None, description="Descrição detalhada da pendência encontrada.")
-    
-    # material
-    isClientMaterial: bool = Field(description="Material pertence ao cliente?")
-    refusedMaterial: bool = Field(description="Material foi recusado?")
+    punctual: bool
+    issueType: Literal["sem pendência", "avaria", "item errado", "quantidade incorreta", "outro"]
+    issueDescription: Optional[str] = None
+    isClientMaterial: bool
+    refusedMaterial: bool
 
+class RequisitionInfo(BaseModel):
+    id: int
+    materialDescription: str
+    requestedBy: str
+    class Config:
+        from_attributes = True
 
-# CRIAÇÃO a partir do formulário de entrada
+# --- Schemas de Ações (Entrada) ---
+
 class RecebimentoCreate(BaseModel):
-    nfNumber: str = Field(..., example="987654")
-    supplier: str = Field(..., example="Fornecedor Principal S/A")
-    orderNumber: Optional[str] = Field(None, example="PED-2025-01")
-    nfValue: Optional[float] = Field(None, example=12345.67)
-    nfVolume: Optional[int] = Field(None, example=25)
-    receivedBy: Optional[str] = Field(None, example="Carlos (Portaria)")
+    nfNumber: str
+    supplier: str
+    orderNumber: Optional[str] = None
+    nfValue: Optional[float] = None
+    nfVolume: Optional[int] = None
+    receivedBy: Optional[str] = None
+    requisition_id_to_fulfill: Optional[int] = None
 
-# ATUALIZAÇÃO durante a conferência
 class RecebimentoUpdate(BaseModel):
-    conferredBy: str = Field(..., example="Ana (Conferência)")
+    conferredBy: str
     details: RecebimentoDetails 
     
-# COMPLETO para LEITURA (o que a API retorna)
-class Recebimento(RecebimentoCreate):
+class RecebimentoResolve(BaseModel):
+    resolvedBy: str
+    resolutionNotes: str
+    finalStatus: Literal["Conferido", "Rejeitado"] 
+    
+class RecebimentoReject(BaseModel):
+    rejectedBy: str
+    rejectionReason: str
+
+# --- Schema de Leitura (Saída da API) ---
+# Este schema é agora totalmente explícito e não herda de RecebimentoCreate.
+class Recebimento(BaseModel):
     id: int
     entryDate: datetime
-    status: StatusRecebimento 
+    status: StatusRecebimento
+    
+    nfNumber: str
+    supplier: str
+    orderNumber: Optional[str] = None
+    nfValue: Optional[float] = None
+    nfVolume: Optional[int] = None
+    receivedBy: Optional[str] = None
 
     conferenceDate: Optional[datetime] = None
     conferredBy: Optional[str] = None
@@ -57,21 +76,13 @@ class Recebimento(RecebimentoCreate):
     resolvedBy: Optional[str] = None
     resolvedDate: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
-        
-class PaginatedRecebimentos(BaseModel):
-    items: List[Recebimento]  # A lista de recebimentos
-    total: int                # A contagem total de itens
-
-    class Config:
-        from_attributes = True
-        
-class RecebimentoResolve(BaseModel):
-    resolvedBy: str = Field(..., example="Supervisor Nome")
-    resolutionNotes: str = Field(..., description="Descrição detalhada da solução aplicada.")
-    finalStatus: Literal["Conferido", "Rejeitado"] 
+    # O campo para o objeto da requisição aninhada
+    fulfilled_requisition: Optional[RequisitionInfo] = None
     
-class RecebimentoReject(BaseModel):
-    rejectedBy: str = Field(..., example="Ana (Conferência)")
-    rejectionReason: str = Field(..., description="O motivo pelo qual a entrada foi rejeitada.")
+    class Config:
+        from_attributes = True
+        
+# --- Schema de Paginação ---
+class PaginatedRecebimentos(BaseModel):
+    items: List[Recebimento]
+    total: int

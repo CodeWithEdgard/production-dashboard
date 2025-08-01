@@ -5,6 +5,7 @@ from . import models, schemas
 from ..database import get_db
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Literal, List
+from ..requisitions import models as requisition_models
 
 
 router = APIRouter(
@@ -15,24 +16,57 @@ router = APIRouter(
 @router.post("/", response_model=schemas.Recebimento, status_code=201)
 def create_recebimento(
     recebimento_data: schemas.RecebimentoCreate,
-    db: Session = Depends(get_db)):
-    
+    db: Session = Depends(get_db)
+):
+    """
+    Cria um novo recebimento e, opcionalmente, o vincula a uma requisição existente.
+    """
+    # --- Verificações de Duplicidade (seu código, já correto) ---
     existing_nf = db.query(models.Receiving).filter(models.Receiving.nfNumber == recebimento_data.nfNumber).first()
     if existing_nf:
-        raise HTTPException(status_code=400, detail=f"A Nota Fiscal nº {recebimento_data.nfNumber} já foi registrada.")
+        raise HTTPException(status_code=400, detail=f"A NF nº {recebimento_data.nfNumber} já foi registrada.")
     
     if recebimento_data.orderNumber:
         existing_order = db.query(models.Receiving).filter(models.Receiving.orderNumber == recebimento_data.orderNumber).first()
         if existing_order:
             raise HTTPException(
                 status_code=400, 
-                detail=f"O Pedido de Compra nº {recebimento_data.orderNumber} já foi associado a outro recebimento (NF: {existing_order.nfNumber})."
+                detail=f"O Pedido nº {recebimento_data.orderNumber} já foi associado à NF: {existing_order.nfNumber}."
             )
             
-    db_recebimento = models.Receiving(**recebimento_data.model_dump())
+    # --- Lógica de Vinculação (A Correção) ---
+    
+    # 1. Separe a "instrução" de vinculação dos dados principais.
+    req_id_to_fulfill = recebimento_data.requisition_id_to_fulfill
+    
+    # 2. Crie um dicionário de dados limpo, sem o campo extra.
+    receiving_model_data = recebimento_data.model_dump(exclude={"requisition_id_to_fulfill"})
+    
+    # 3. Crie a instância do recebimento com o dicionário limpo.
+    db_recebimento = models.Receiving(**receiving_model_data)
+    
+    # 4. Se um ID de requisição foi fornecido, processe a vinculação.
+    if req_id_to_fulfill:
+        db_req = db.query(requisition_models.Requisition).filter(requisition_models.Requisition.id == req_id_to_fulfill).first()
+        
+        # Validações de segurança
+        if not db_req:
+            raise HTTPException(status_code=404, detail=f"Requisição com ID {req_id_to_fulfill} não encontrada.")
+        if db_req.isFulfilled:
+            raise HTTPException(status_code=400, detail=f"Requisição {req_id_to_fulfill} já foi atendida.")
+            
+        # Atualiza a requisição e cria o link
+        db_req.isFulfilled = True
+        db_req.receiving = db_recebimento # O SQLAlchemy gerencia o 'receiving_id'
+        
+        db.add(db_req)
+
+    # 5. Adiciona o novo recebimento e salva a transação (que inclui a atualização da requisição, se houver)
     db.add(db_recebimento)
     db.commit()
     db.refresh(db_recebimento)
+    response_data = schemas.Recebimento.model_validate(db_recebimento)
+    
     return db_recebimento
 
 

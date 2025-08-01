@@ -1,40 +1,54 @@
-
 import React from "react";
 
-export function Header () {
+export function Header() {
   return (
     <header className="bg-background border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <a href="/" className="text-lg font-bold"></a>
 
-      <a href="/" className="text-lg font-bold">
-      Elak Labs 
-      </a>
+        {/* Links de Navegação */}
 
-      {/* Links de Navegação */}
-
-      <div className="flex items-center space-x-6">
-        {/* 
+        <div className="flex items-center space-x-6">
+          {/* 
         <a href="/relatorio" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
         Gerador de Relatorios</a>
           */}
-        <a href="/recebimento" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-        Recebimento</a>
+          <a
+            href="/recebimento"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            Recebimento
+          </a>
 
-        <a href="/separacao" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-        Separação</a>
+          <a
+            href="/requisicao"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            Requisição
+          </a>
 
-        <a href="/requisicao" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-        Requisição</a>
+          <a
+            href="/separacao"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            Separação
+          </a>
 
-        <a href="/alteracao" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-        Alteração</a>
+          <a
+            href="/alteracao"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            Alteração
+          </a>
 
-        <a href="/relatoriornc" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-        RNC</a>
+          <a
+            href="/relatoriornc"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            RNC
+          </a>
+        </div>
       </div>
-
-      </div>
-
     </header>
-  )
+  );
 }
