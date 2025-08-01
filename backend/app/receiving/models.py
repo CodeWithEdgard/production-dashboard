@@ -28,3 +28,8 @@ class Receiving(Base):
   resolutionNotes = Column(String, nullable=True)
   resolvedBy = Column(String, nullable=True)
   resolvedDate = Column(DateTime(timezone=True), nullable=True)
+  fulfilled_requisition = relationship(
+        "Requisition", 
+        back_populates="receiving",
+        uselist=False 
+    )
